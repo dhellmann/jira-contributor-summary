@@ -189,46 +189,46 @@ class HtmlGenerator:
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
+            line-height: 1.4;
             color: #333;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 15px;
             background-color: #f5f5f5;
         }
 
         .header {
             background: linear-gradient(135deg, #e57373 0%, #ad1457 100%);
             color: white;
-            padding: 30px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .header h1 {
-            margin: 0 0 10px 0;
-            font-size: 2.5em;
+            margin: 0 0 8px 0;
+            font-size: 2.2em;
             font-weight: 300;
         }
 
         .header .subtitle {
             opacity: 0.9;
-            font-size: 1.1em;
+            font-size: 1em;
         }
 
         .summary-stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
         .stat-card {
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -250,10 +250,10 @@ class HtmlGenerator:
         }
 
         .stat-number {
-            font-size: 2em;
+            font-size: 1.8em;
             font-weight: bold;
             color: #e57373;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
 
         .stat-label {
@@ -272,7 +272,7 @@ class HtmlGenerator:
 
         .ticket {
             border-bottom: 1px solid #eee;
-            padding: 20px;
+            padding: 12px;
             transition: background-color 0.2s ease;
         }
 
@@ -310,7 +310,7 @@ class HtmlGenerator:
         .ticket-header {
             display: flex;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
 
         .ticket-key {
@@ -385,8 +385,8 @@ class HtmlGenerator:
 
         .contributors {
             color: #666;
-            font-size: 0.95em;
-            margin-top: 8px;
+            font-size: 0.9em;
+            margin-top: 6px;
         }
 
         /* Contributors View Styles */
@@ -401,23 +401,23 @@ class HtmlGenerator:
 
         .contributor-item {
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 12px;
             overflow: hidden;
         }
 
         .contributor-header {
             background: #f8f9fa;
-            padding: 15px 20px;
+            padding: 12px 15px;
             border-bottom: 1px solid #dee2e6;
         }
 
         .contributor-name {
-            font-size: 1.2em;
+            font-size: 1.1em;
             font-weight: 600;
             color: #333;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
 
         .contributor-stats {
@@ -426,13 +426,13 @@ class HtmlGenerator:
         }
 
         .contributor-tickets {
-            padding: 15px 20px;
+            padding: 10px 15px;
         }
 
         .contributor-ticket {
             display: flex;
             align-items: center;
-            padding: 8px 0;
+            padding: 6px 0;
             border-bottom: 1px solid #f0f0f0;
         }
 
