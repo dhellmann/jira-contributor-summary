@@ -6,7 +6,6 @@ from pathlib import Path
 
 import click
 
-from .cache import TicketCache
 from .contributors import ContributorExtractor
 from .hierarchy import TicketHierarchy
 from .html_generator import HtmlGenerator
@@ -30,18 +29,9 @@ from .jira_client import JiraClient
     help="Output HTML file path (default: jira-contributor-summary.html)",
 )
 @click.option(
-    "--cache-dir",
-    help="Directory to store cache files (default: uses appdirs)",
-)
-@click.option(
     "--issue-types",
     default="Feature,Issue,Bug",
     help="Comma-separated list of root issue types (default: Feature,Issue,Bug)",
-)
-@click.option(
-    "--clear-cache",
-    is_flag=True,
-    help="Clear the cache before running",
 )
 @click.option(
     "--token",
@@ -61,9 +51,7 @@ def main(
     jira_url: str,
     project: str,
     output: str,
-    cache_dir: typing.Optional[str],
     issue_types: str,
-    clear_cache: bool,
     token: typing.Optional[str],
     email: typing.Optional[str],
     verbose: bool,
@@ -100,29 +88,14 @@ def main(
             click.echo(f"Project: {project}")
             click.echo(f"Root issue types: {root_issue_types}")
             click.echo(f"Output file: {output}")
-            click.echo(f"Cache directory: {cache_dir or 'default (appdirs)'}")
 
         # Initialize components
         click.echo("Initializing JIRA client...")
         jira_client = JiraClient(jira_url, token, email)
 
-        click.echo("Setting up cache...")
-        cache = TicketCache(cache_dir)
-
-        if clear_cache:
-            click.echo("Clearing cache...")
-            cache.clear_cache()
-
-        if verbose:
-            stats = cache.get_cache_stats()
-            click.echo(
-                f"Cache stats: {stats['total_tickets']} tickets, "
-                f"{stats['cache_size_bytes']} bytes"
-            )
-
         # Build ticket hierarchy
         click.echo("Building ticket hierarchy...")
-        hierarchy = TicketHierarchy(jira_client, cache)
+        hierarchy = TicketHierarchy(jira_client)
         hierarchy.build_hierarchy(project, root_issue_types)
 
         all_tickets = hierarchy.get_all_tickets()
@@ -154,14 +127,6 @@ def main(
 
         click.echo(f"Report generated successfully: {Path(output).absolute()}")
 
-        # Final stats
-        if verbose:
-            final_stats = cache.get_cache_stats()
-            click.echo(
-                f"Final cache stats: {final_stats['total_tickets']} tickets, "
-                f"{final_stats['cache_size_bytes']} bytes"
-            )
-
     except KeyboardInterrupt:
         click.echo("\\nOperation cancelled by user", err=True)
         sys.exit(1)
@@ -172,67 +137,6 @@ def main(
 
             traceback.print_exc()
         sys.exit(1)
-
-
-@click.command()
-@click.option(
-    "--cache-dir",
-    help="Cache directory to inspect (default: uses appdirs)",
-)
-def cache_info(cache_dir: typing.Optional[str]) -> None:
-    """Display information about the ticket cache."""
-    try:
-        cache = TicketCache(cache_dir)
-        stats = cache.get_cache_stats()
-        cached_tickets = cache.get_cached_tickets()
-
-        click.echo(f"Cache Directory: {stats['cache_dir']}")
-        click.echo(f"Total Tickets: {stats['total_tickets']}")
-        click.echo(f"Cache Size: {stats['cache_size_bytes']} bytes")
-        click.echo()
-
-        if cached_tickets:
-            click.echo("Cached Tickets:")
-            for ticket_key in sorted(cached_tickets.keys()):
-                ticket = cached_tickets[ticket_key]
-                summary = ticket.get("fields", {}).get("summary", "No summary")
-                updated = ticket.get("fields", {}).get("updated", "Unknown")
-                click.echo(f"  {ticket_key}: {summary[:60]}... (updated: {updated})")
-        else:
-            click.echo("No tickets in cache")
-
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-
-
-@click.command()
-@click.option(
-    "--cache-dir",
-    help="Cache directory to clear (default: uses appdirs)",
-)
-@click.confirmation_option(prompt="Are you sure you want to clear the cache?")
-def clear_cache_cmd(cache_dir: typing.Optional[str]) -> None:
-    """Clear the ticket cache."""
-    try:
-        cache = TicketCache(cache_dir)
-        cache.clear_cache()
-        click.echo("Cache cleared successfully")
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-
-
-# Create a group for multiple commands
-@click.group()
-def cli() -> None:
-    """JIRA Contributor Summary Tool."""
-    pass
-
-
-cli.add_command(main, name="generate")
-cli.add_command(cache_info, name="cache-info")
-cli.add_command(clear_cache_cmd, name="clear-cache")
 
 
 if __name__ == "__main__":

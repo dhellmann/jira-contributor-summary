@@ -3,22 +3,19 @@
 import typing
 from collections import defaultdict
 
-from .cache import TicketCache
 from .jira_client import JiraClient
 
 
 class TicketHierarchy:
     """Build and manage hierarchical relationships between JIRA tickets."""
 
-    def __init__(self, jira_client: JiraClient, cache: TicketCache):
+    def __init__(self, jira_client: JiraClient):
         """Initialize the ticket hierarchy builder.
 
         Args:
             jira_client: JIRA API client
-            cache: Ticket cache for storing/retrieving ticket data
         """
         self.jira_client = jira_client
-        self.cache = cache
         self.all_tickets: typing.Dict[str, typing.Dict[str, typing.Any]] = {}
         self.hierarchy: typing.Dict[str, typing.List[str]] = defaultdict(list)
         self.root_tickets: typing.List[str] = []
@@ -66,34 +63,12 @@ class TicketHierarchy:
 
         # Fetch ticket data if not provided
         if ticket_data is None:
-            # Check cache first
-            cached_ticket = self.cache.get_ticket(ticket_key)
-            if cached_ticket:
-                # Check if cached ticket is still fresh
-                try:
-                    current_ticket = self.jira_client.get_ticket(ticket_key)
-                    current_updated = self.jira_client.get_ticket_updated_time(
-                        current_ticket
-                    )
-
-                    if not self.cache.is_ticket_stale(ticket_key, current_updated):
-                        ticket_data = cached_ticket
-                        print(f"Using cached data for {ticket_key}")
-                    else:
-                        ticket_data = current_ticket
-                        self.cache.put_ticket(ticket_key, ticket_data)
-                        print(f"Updated cache for {ticket_key}")
-                except Exception as e:
-                    print(f"Error checking {ticket_key}, using cached data: {e}")
-                    ticket_data = cached_ticket
-            else:
-                try:
-                    ticket_data = self.jira_client.get_ticket(ticket_key)
-                    self.cache.put_ticket(ticket_key, ticket_data)
-                    print(f"Fetched and cached {ticket_key}")
-                except Exception as e:
-                    print(f"Error fetching {ticket_key}: {e}")
-                    return
+            try:
+                ticket_data = self.jira_client.get_ticket(ticket_key)
+                print(f"Fetched {ticket_key}")
+            except Exception as e:
+                print(f"Error fetching {ticket_key}: {e}")
+                return
 
         # Store the ticket
         self.all_tickets[ticket_key] = ticket_data
