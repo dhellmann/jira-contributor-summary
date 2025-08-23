@@ -35,11 +35,16 @@ class HtmlGenerator:
         """
         # Prepare data for template
         tickets_list = []
+        contributors_data = self._generate_contributors_data(
+            display_data, contributor_summary
+        )
+
         template_data = {
             "project_key": project_key,
             "jira_base_url": self.jira_base_url,
             "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "tickets": tickets_list,
+            "contributors": contributors_data,
         }
 
         for item in display_data:
@@ -80,6 +85,55 @@ class HtmlGenerator:
             f.write(html_content)
 
         print(f"HTML report generated: {output_path.absolute()}")
+
+    def _generate_contributors_data(
+        self,
+        display_data: typing.List[typing.Dict[str, typing.Any]],
+        contributor_summary: typing.Dict[str, typing.Set[str]],
+    ) -> typing.List[typing.Dict[str, typing.Any]]:
+        """Generate contributors view data.
+
+        Args:
+            display_data: List of ticket display data with hierarchy
+            contributor_summary: Dictionary mapping ticket keys to contributor sets
+
+        Returns:
+            List of contributor data for the contributors view
+        """
+        # Build a mapping of contributors to their top-level tickets
+        contributor_tickets = {}
+
+        for item in display_data:
+            ticket_key = item["key"]
+            contributors = contributor_summary.get(ticket_key, set())
+
+            # Only consider top-level tickets (level 0)
+            if item["level"] == 0:
+                for contributor in contributors:
+                    if contributor not in contributor_tickets:
+                        contributor_tickets[contributor] = []
+
+                    contributor_tickets[contributor].append(
+                        {
+                            "key": ticket_key,
+                            "summary": item["summary"],
+                            "url": f"{self.jira_base_url}/browse/{ticket_key}",
+                        }
+                    )
+
+        # Convert to sorted list format
+        contributors_list = []
+        for contributor in sorted(contributor_tickets.keys()):
+            tickets = contributor_tickets[contributor]
+            contributors_list.append(
+                {
+                    "name": contributor,
+                    "ticket_count": len(tickets),
+                    "tickets": sorted(tickets, key=lambda x: x["key"]),
+                }
+            )
+
+        return contributors_list
 
     def _get_status_css_class(self, status_name: str) -> str:
         """Get CSS class for status based on status name.
@@ -176,6 +230,23 @@ class HtmlGenerator:
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .stat-card.active {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 2px solid #1976d2;
+        }
+
+        .stat-card.active .stat-number {
+            color: #1565c0;
         }
 
         .stat-number {
@@ -318,6 +389,74 @@ class HtmlGenerator:
             margin-top: 8px;
         }
 
+        /* Contributors View Styles */
+        .contributors-container {
+            display: none;
+        }
+
+        .contributor-item {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .contributor-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .contributor-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .contributor-stats {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .contributor-tickets {
+            padding: 15px 20px;
+        }
+
+        .contributor-ticket {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .contributor-ticket:last-child {
+            border-bottom: none;
+        }
+
+        .contributor-ticket-key {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            margin-right: 12px;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .contributor-ticket-key:hover {
+            background: #bbdefb;
+            text-decoration: none;
+        }
+
+        .contributor-ticket-summary {
+            flex: 1;
+            color: #333;
+        }
+
         .contributors strong {
             color: #333;
         }
@@ -377,7 +516,7 @@ class HtmlGenerator:
     </div>
 
     <div class="summary-stats">
-        <div class="stat-card">
+        <div class="stat-card active" id="tickets-card" onclick="showTicketsView()">
             <div class="stat-number">{{ tickets|length }}</div>
             <div class="stat-label">Total Tickets</div>
         </div>
@@ -385,8 +524,8 @@ class HtmlGenerator:
             <div class="stat-number">{{ tickets|selectattr('level', 'equalto', 0)|list|length }}</div>
             <div class="stat-label">Root Tickets</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ tickets|map(attribute='contributors')|sum(start=[])|unique|list|length }}</div>
+        <div class="stat-card" id="contributors-card" onclick="showContributorsView()">
+            <div class="stat-number">{{ contributors|length }}</div>
             <div class="stat-label">Unique Contributors</div>
         </div>
     </div>
@@ -420,9 +559,50 @@ class HtmlGenerator:
         {% endfor %}
     </div>
 
+    <div class="contributors-container" id="contributors-container">
+        {% for contributor in contributors %}
+        <div class="contributor-item">
+            <div class="contributor-header">
+                <div class="contributor-name">{{ contributor.name }}</div>
+                <div class="contributor-stats">Contributing to {{ contributor.ticket_count }} top-level ticket{{ 's' if contributor.ticket_count != 1 else '' }}</div>
+            </div>
+            <div class="contributor-tickets">
+                {% for ticket in contributor.tickets %}
+                <div class="contributor-ticket">
+                    <a href="{{ ticket.url }}" class="contributor-ticket-key" target="_blank">{{ ticket.key }}</a>
+                    <div class="contributor-ticket-summary">{{ ticket.summary }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
     <div class="footer">
         Generated by JIRA Contributor Summary tool
     </div>
+
+    <script>
+        function showTicketsView() {
+            // Update active state
+            document.getElementById('tickets-card').classList.add('active');
+            document.getElementById('contributors-card').classList.remove('active');
+
+            // Show/hide containers
+            document.querySelector('.tickets-container').style.display = 'block';
+            document.getElementById('contributors-container').style.display = 'none';
+        }
+
+        function showContributorsView() {
+            // Update active state
+            document.getElementById('contributors-card').classList.add('active');
+            document.getElementById('tickets-card').classList.remove('active');
+
+            // Show/hide containers
+            document.querySelector('.tickets-container').style.display = 'none';
+            document.getElementById('contributors-container').style.display = 'block';
+        }
+    </script>
 </body>
 </html>
         """.strip()
