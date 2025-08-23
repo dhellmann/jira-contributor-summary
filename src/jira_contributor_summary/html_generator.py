@@ -46,13 +46,17 @@ class HtmlGenerator:
             ticket_key = item["key"]
             contributors = contributor_summary.get(ticket_key, set())
 
-            # Extract issue type from ticket data
+            # Extract issue type and status from ticket data
             ticket_data = item.get("ticket_data", {})
             fields = ticket_data.get("fields", {})
             issue_type = fields.get("issuetype", {})
             issue_type_name = (
                 issue_type.get("name", "Unknown") if issue_type else "Unknown"
             )
+
+            status = fields.get("status", {})
+            status_name = status.get("name", "Unknown") if status else "Unknown"
+            status_class = self._get_status_css_class(status_name)
 
             ticket_info = {
                 "key": ticket_key,
@@ -62,6 +66,8 @@ class HtmlGenerator:
                 "contributors": sorted(contributors),
                 "contributor_count": len(contributors),
                 "issue_type": issue_type_name,
+                "status": status_name,
+                "status_class": status_class,
             }
             tickets_list.append(ticket_info)
 
@@ -74,6 +80,41 @@ class HtmlGenerator:
             f.write(html_content)
 
         print(f"HTML report generated: {output_path.absolute()}")
+
+    def _get_status_css_class(self, status_name: str) -> str:
+        """Get CSS class for status based on status name.
+
+        Args:
+            status_name: The JIRA status name
+
+        Returns:
+            CSS class name for styling the status
+        """
+        status_lower = status_name.lower()
+
+        # Map common JIRA status names to CSS classes
+        if any(
+            done_status in status_lower
+            for done_status in ["done", "closed", "resolved", "complete"]
+        ):
+            return "done"
+        elif any(
+            progress_status in status_lower
+            for progress_status in [
+                "in progress",
+                "in-progress",
+                "development",
+                "review",
+            ]
+        ):
+            return "in-progress"
+        elif any(
+            todo_status in status_lower
+            for todo_status in ["to do", "to-do", "open", "new", "backlog"]
+        ):
+            return "to-do"
+        else:
+            return ""  # Default styling
 
     def _render_template(self, data: typing.Dict[str, typing.Any]) -> str:
         """Render the HTML template with data.
@@ -243,6 +284,34 @@ class HtmlGenerator:
             border: 1px solid #dee2e6;
         }
 
+        .status {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-left: 10px;
+            border: 1px solid #bbdefb;
+        }
+
+        .status.done {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border-color: #c8e6c9;
+        }
+
+        .status.in-progress {
+            background: #fff3e0;
+            color: #f57c00;
+            border-color: #ffcc02;
+        }
+
+        .status.to-do {
+            background: #fafafa;
+            color: #616161;
+            border-color: #e0e0e0;
+        }
+
         .contributors {
             color: #666;
             font-size: 0.95em;
@@ -329,6 +398,7 @@ class HtmlGenerator:
                 <a href="{{ ticket.url }}" class="ticket-key" target="_blank">{{ ticket.key }}</a>
                 <div class="ticket-summary">{{ ticket.summary }}</div>
                 <div class="issue-type">{{ ticket.issue_type }}</div>
+                <div class="status {{ ticket.status_class }}">{{ ticket.status }}</div>
                 <div class="contributor-count">{{ ticket.contributor_count }} contributors</div>
             </div>
 
