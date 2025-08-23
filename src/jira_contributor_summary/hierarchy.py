@@ -92,7 +92,7 @@ class TicketHierarchy:
     def _get_child_ticket_keys(
         self, ticket_data: typing.Dict[str, typing.Any]
     ) -> typing.List[str]:
-        """Extract child ticket keys from ticket data.
+        """Find all child tickets by searching for tickets that reference this ticket as their parent.
 
         Args:
             ticket_data: JIRA ticket data
@@ -102,26 +102,92 @@ class TicketHierarchy:
         """
         child_keys = []
         fields = ticket_data.get("fields", {})
+        ticket_key = ticket_data.get("key")
 
-        # Get subtasks
+        if not ticket_key:
+            return child_keys
+
+        # Get subtasks (direct children in JIRA)
         subtasks = fields.get("subtasks", [])
         for subtask in subtasks:
             child_keys.append(subtask["key"])
 
-        # Get linked issues that represent parent-child relationships
-        issue_links = fields.get("issuelinks", [])
-        for link in issue_links:
-            link_type = link.get("type", {})
-            link_name = link_type.get("name", "").lower()
+        # Based on the ticket type, search for tickets that have this ticket as their parent
+        issue_type = fields.get("issuetype", {})
+        issue_type_name = issue_type.get("name", "").lower() if issue_type else ""
 
-            # Look for common parent-child link types
-            if any(
-                rel in link_name
-                for rel in ["blocks", "epic", "parent", "child", "subtask"]
+        try:
+            if "epic" in issue_type_name:
+                # For Epics, search for tickets with Epic Link pointing to this epic
+                epic_children = self._search_tickets_with_epic_link(ticket_key)
+                child_keys.extend(epic_children)
+
+            elif any(
+                parent_type in issue_type_name
+                for parent_type in ["feature", "initiative", "theme"]
             ):
-                # Check outward links (this ticket blocks/contains others)
-                if "outwardIssue" in link:
-                    child_keys.append(link["outwardIssue"]["key"])
+                # For Features/Initiatives, search for tickets with Parent Link pointing to this ticket
+                parent_children = self._search_tickets_with_parent_link(ticket_key)
+                child_keys.extend(parent_children)
+
+        except Exception as e:
+            print(f"Error searching for children of {ticket_key}: {e}")
+
+        return child_keys
+
+    def _search_tickets_with_epic_link(self, epic_key: str) -> typing.List[str]:
+        """Search for tickets that have their Epic Link pointing to the given epic.
+
+        Args:
+            epic_key: The epic ticket key to search for
+
+        Returns:
+            List of ticket keys that have this epic as their Epic Link
+        """
+        child_keys = []
+
+        try:
+            # Search for tickets where the Epic Link field equals our epic key
+            jql = f'"Epic Link" = "{epic_key}"'
+            results = self.jira_client.jira.jql(jql=jql, limit=1000)
+
+            if results and "issues" in results:
+                for issue in results["issues"]:
+                    child_key = issue.get("key")
+                    if child_key and child_key not in child_keys:
+                        child_keys.append(child_key)
+                        print(f"Found Epic Link child: {epic_key} -> {child_key}")
+
+        except Exception as e:
+            print(f"Error searching Epic Link for {epic_key}: {e}")
+
+        return child_keys
+
+    def _search_tickets_with_parent_link(self, parent_key: str) -> typing.List[str]:
+        """Search for tickets that have their Parent Link pointing to the given parent.
+
+        Args:
+            parent_key: The parent ticket key to search for
+
+        Returns:
+            List of ticket keys that have this ticket as their Parent Link
+        """
+        child_keys = []
+
+        try:
+            # Search for tickets where the Parent Link field equals our parent key
+            jql = f'"Parent Link" = "{parent_key}"'
+            results = self.jira_client.jira.jql(jql=jql, limit=1000)
+
+            if results and "issues" in results:
+                for issue in results["issues"]:
+                    child_key = issue.get("key")
+                    if child_key and child_key not in child_keys:
+                        child_keys.append(child_key)
+                        print(f"Found Parent Link child: {parent_key} -> {child_key}")
+
+        except Exception as e:
+            print(f"Error searching Parent Link for {parent_key}: {e}")
 
         return child_keys
 
@@ -180,9 +246,12 @@ class TicketHierarchy:
         display_data = []
         processed = set()
 
+        # Find all true root tickets (tickets that have no parent in our hierarchy)
+        true_roots = self._find_true_root_tickets()
+
         # Sort root tickets by rank
         sorted_roots = [
-            key for key in self.get_sorted_tickets_by_rank() if key in self.root_tickets
+            key for key in self.get_sorted_tickets_by_rank() if key in true_roots
         ]
 
         for root_key in sorted_roots:
@@ -190,6 +259,27 @@ class TicketHierarchy:
                 self._add_ticket_to_display(root_key, display_data, processed, level=0)
 
         return display_data
+
+    def _find_true_root_tickets(self) -> typing.Set[str]:
+        """Find all tickets that are true roots (have no parent in our collected tickets).
+
+        Returns:
+            Set of ticket keys that are at the top of their hierarchies
+        """
+        # Start with all tickets
+        all_ticket_keys = set(self.all_tickets.keys())
+
+        # Remove tickets that have a parent in our hierarchy
+        tickets_with_parents = set()
+        for parent_key, children in self.hierarchy.items():
+            if parent_key in all_ticket_keys:  # Only consider parents we have data for
+                tickets_with_parents.update(children)
+
+        # True roots are tickets that exist but are not children of any other ticket
+        true_roots = all_ticket_keys - tickets_with_parents
+
+        print(f"Found {len(true_roots)} true root tickets: {sorted(true_roots)}")
+        return true_roots
 
     def _add_ticket_to_display(
         self,
