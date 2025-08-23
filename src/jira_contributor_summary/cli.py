@@ -21,8 +21,11 @@ from .jira_client import JiraClient
 )
 @click.option(
     "--project",
-    required=True,
-    help="JIRA project key (e.g., PROJ)",
+    help="JIRA project key (e.g., PROJ). Required unless --ticket is specified.",
+)
+@click.option(
+    "--ticket",
+    help="Single ticket ID to summarize (e.g., PROJ-123). If specified, only this ticket and its hierarchy will be processed.",
 )
 @click.option(
     "--output",
@@ -50,7 +53,8 @@ from .jira_client import JiraClient
 )
 def main(
     jira_url: str,
-    project: str,
+    project: typing.Optional[str],
+    ticket: typing.Optional[str],
     output: str,
     issue_types: str,
     token: typing.Optional[str],
@@ -59,26 +63,31 @@ def main(
 ) -> None:
     """Generate HTML summaries of JIRA ticket contributors.
 
-    This tool fetches JIRA tickets of specified types (Feature, Issue, Bug by default)
-    and recursively collects information about their children. It then generates a
-    styled HTML report showing the ticket hierarchy and all contributors for each
-    ticket and its descendants.
+    This tool can operate in two modes:
+
+    1. PROJECT MODE: Fetches JIRA tickets of specified types (Feature, Issue, Bug by default)
+       from a project and recursively collects information about their children.
+
+    2. SINGLE TICKET MODE: Starts from a specific ticket and builds its complete hierarchy.
+
+    It generates a styled HTML report showing the ticket hierarchy and all contributors
+    for each ticket and its descendants.
 
     Authentication is handled via a JIRA API token, which should be provided either
-    via the --token option or the JIRA_TOKEN environment variable.
+    via the --token option or the JIRA_API_TOKEN environment variable. For JIRA Cloud,
+    you should also provide your email address via --email or JIRA_EMAIL environment variable.
 
     Examples:
 
-        # Basic usage
+        # Project mode - analyze entire project
         jira-contributor-summary --jira-url https://company.atlassian.net --project MYPROJ
 
-        # Custom output file and cache directory
-        jira-contributor-summary --jira-url https://company.atlassian.net --project MYPROJ \\
-            --output /path/to/report.html --cache-dir /path/to/cache
+        # Single ticket mode - analyze specific ticket and its children
+        jira-contributor-summary --jira-url https://company.atlassian.net --ticket MYPROJ-123
 
-        # Include only specific issue types
+        # With custom options
         jira-contributor-summary --jira-url https://company.atlassian.net --project MYPROJ \\
-            --issue-types "Epic,Story,Task"
+            --output /path/to/report.html --issue-types "Epic,Story,Task" --verbose
     """
     try:
         # Configure logging for debugging when verbose is enabled
@@ -97,13 +106,25 @@ def main(
         else:
             logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
 
+        # Validate parameters
+        if not project and not ticket:
+            raise click.UsageError("Either --project or --ticket must be specified")
+
+        if ticket and project:
+            click.echo(
+                "Warning: Both --project and --ticket specified. Using --ticket mode."
+            )
+
         # Parse issue types
         root_issue_types = [t.strip() for t in issue_types.split(",")]
 
         if verbose:
             click.echo(f"JIRA URL: {jira_url}")
-            click.echo(f"Project: {project}")
-            click.echo(f"Root issue types: {root_issue_types}")
+            if ticket:
+                click.echo(f"Single ticket mode: {ticket}")
+            else:
+                click.echo(f"Project: {project}")
+                click.echo(f"Root issue types: {root_issue_types}")
             click.echo(f"Output file: {output}")
 
         # Initialize components
@@ -113,7 +134,13 @@ def main(
         # Build ticket hierarchy
         click.echo("Building ticket hierarchy...")
         hierarchy = TicketHierarchy(jira_client)
-        hierarchy.build_hierarchy(project, root_issue_types)
+
+        if ticket:
+            # Single ticket mode - start from the specified ticket
+            hierarchy.build_hierarchy_from_ticket(ticket)
+        else:
+            # Project mode - start from project root tickets
+            hierarchy.build_hierarchy(project, root_issue_types)
 
         all_tickets = hierarchy.get_all_tickets()
         hierarchy_map = hierarchy.get_hierarchy_map()
@@ -140,7 +167,15 @@ def main(
         html_generator = HtmlGenerator(jira_url)
         display_data = hierarchy.get_hierarchy_for_display()
 
-        html_generator.generate_html(display_data, contributor_summary, project, output)
+        # Determine project key for HTML report
+        report_project = project
+        if ticket and not project:
+            # Extract project key from ticket ID (e.g., PROJ-123 -> PROJ)
+            report_project = ticket.split("-")[0] if "-" in ticket else ticket
+
+        html_generator.generate_html(
+            display_data, contributor_summary, report_project, output
+        )
 
         click.echo(f"Report generated successfully: {Path(output).absolute()}")
 

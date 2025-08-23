@@ -51,6 +51,29 @@ class TicketHierarchy:
             self.root_tickets.append(ticket_key)
             self._process_ticket_recursive(ticket_key, ticket)
 
+    def build_hierarchy_from_ticket(self, ticket_key: str) -> None:
+        """Build the complete ticket hierarchy starting from a single ticket.
+
+        This method fetches the specified ticket and recursively processes all its
+        children to build the complete hierarchy.
+
+        Args:
+            ticket_key: JIRA ticket key to start from (e.g., 'PROJ-123')
+        """
+        print(f"Fetching ticket {ticket_key} and building hierarchy...")
+
+        try:
+            # Fetch the starting ticket
+            ticket_data = self.jira_client.get_ticket(ticket_key)
+
+            # Add it as a root ticket and process recursively
+            self.root_tickets.append(ticket_key)
+            self._process_ticket_recursive(ticket_key, ticket_data)
+
+        except Exception as e:
+            print(f"Error fetching ticket {ticket_key}: {e}")
+            raise
+
     def _process_ticket_recursive(
         self,
         ticket_key: str,
