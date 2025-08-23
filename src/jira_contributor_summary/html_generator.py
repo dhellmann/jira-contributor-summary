@@ -46,6 +46,14 @@ class HtmlGenerator:
             ticket_key = item["key"]
             contributors = contributor_summary.get(ticket_key, set())
 
+            # Extract issue type from ticket data
+            ticket_data = item.get("ticket_data", {})
+            fields = ticket_data.get("fields", {})
+            issue_type = fields.get("issuetype", {})
+            issue_type_name = (
+                issue_type.get("name", "Unknown") if issue_type else "Unknown"
+            )
+
             ticket_info = {
                 "key": ticket_key,
                 "summary": item["summary"],
@@ -53,6 +61,7 @@ class HtmlGenerator:
                 "url": f"{self.jira_base_url}/browse/{ticket_key}",
                 "contributors": sorted(contributors),
                 "contributor_count": len(contributors),
+                "issue_type": issue_type_name,
             }
             tickets_list.append(ticket_info)
 
@@ -224,6 +233,16 @@ class HtmlGenerator:
             margin-left: 10px;
         }
 
+        .issue-type {
+            background: #f8f9fa;
+            color: #6c757d;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-left: 10px;
+            border: 1px solid #dee2e6;
+        }
+
         .contributors {
             color: #666;
             font-size: 0.95em;
@@ -309,6 +328,7 @@ class HtmlGenerator:
             <div class="ticket-header">
                 <a href="{{ ticket.url }}" class="ticket-key" target="_blank">{{ ticket.key }}</a>
                 <div class="ticket-summary">{{ ticket.summary }}</div>
+                <div class="issue-type">{{ ticket.issue_type }}</div>
                 <div class="contributor-count">{{ ticket.contributor_count }} contributors</div>
             </div>
 
