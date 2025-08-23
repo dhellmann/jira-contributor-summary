@@ -1,5 +1,6 @@
 """Command-line interface for JIRA contributor summary tool."""
 
+import logging
 import sys
 import typing
 from pathlib import Path
@@ -80,6 +81,22 @@ def main(
             --issue-types "Epic,Story,Task"
     """
     try:
+        # Configure logging for debugging when verbose is enabled
+        if verbose:
+            logging.basicConfig(
+                level=logging.DEBUG,
+                format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                stream=sys.stderr,
+            )
+            # Set logging level for our modules
+            logging.getLogger("jira_contributor_summary").setLevel(logging.DEBUG)
+            logging.getLogger("atlassian").setLevel(
+                logging.INFO
+            )  # Reduce noise from atlassian library
+            logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+        else:
+            logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
+
         # Parse issue types
         root_issue_types = [t.strip() for t in issue_types.split(",")]
 

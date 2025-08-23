@@ -1,7 +1,10 @@
 """Logic for extracting contributors from JIRA tickets."""
 
+import logging
 import typing
 from collections import defaultdict
+
+logger = logging.getLogger(__name__)
 
 
 class ContributorExtractor:
@@ -68,6 +71,7 @@ class ContributorExtractor:
         ticket_key: str,
         all_tickets: typing.Dict[str, typing.Dict[str, typing.Any]],
         ticket_hierarchy: typing.Dict[str, typing.List[str]],
+        seen: set[str] | None = None,
     ) -> typing.Set[str]:
         """Get all contributors for a ticket and its descendants.
 
@@ -79,6 +83,13 @@ class ContributorExtractor:
         Returns:
             Set of all contributor names for the ticket and its descendants
         """
+        # Make a copy of the seen set to avoid modifying the original
+        seen = set(seen) if seen is not None else set()
+        if ticket_key in seen:
+            return set()
+        seen.add(ticket_key)
+
+        logger.debug(f"Getting contributors for {ticket_key}")
         if ticket_key in self.contributor_cache:
             return self.contributor_cache[ticket_key].copy()
 
@@ -95,7 +106,10 @@ class ContributorExtractor:
         children = ticket_hierarchy.get(ticket_key, [])
         for child_key in children:
             child_contributors = self.get_all_contributors_for_ticket_hierarchy(
-                child_key, all_tickets, ticket_hierarchy
+                ticket_key=child_key,
+                all_tickets=all_tickets,
+                ticket_hierarchy=ticket_hierarchy,
+                seen=seen,
             )
             all_contributors.update(child_contributors)
 
