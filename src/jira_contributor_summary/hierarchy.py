@@ -27,6 +27,9 @@ class TicketHierarchy:
     ) -> None:
         """Build the complete ticket hierarchy for a project.
 
+        Only includes top-level tickets that have a resolution of "Unresolved".
+        Child tickets are included regardless of their resolution status.
+
         Args:
             project_key: JIRA project key
             root_issue_types: Issue types to use as root tickets (default: Feature, Issue, Bug)
@@ -34,11 +37,13 @@ class TicketHierarchy:
         if root_issue_types is None:
             root_issue_types = ["Feature", "Issue", "Bug"]
 
-        # First, get all root tickets
+        # First, get all root tickets that are unresolved
         print(
-            f"Fetching root tickets of types {root_issue_types} from project {project_key}..."
+            f"Fetching unresolved root tickets of types {root_issue_types} from project {project_key}..."
         )
-        root_tickets = self.jira_client.search_tickets(project_key, root_issue_types)
+        root_tickets = self.jira_client.search_tickets(
+            project_key, root_issue_types, "Unresolved"
+        )
 
         # Process each root ticket and build hierarchy
         for ticket in root_tickets:

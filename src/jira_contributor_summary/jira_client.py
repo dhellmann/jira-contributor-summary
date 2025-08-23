@@ -72,6 +72,7 @@ class JiraClient:
         self,
         project_key: str,
         issue_types: typing.Optional[typing.List[str]] = None,
+        resolution: typing.Optional[str] = None,
         max_results: int = 1000,
     ) -> typing.List[typing.Dict[str, typing.Any]]:
         """Search for tickets in a project.
@@ -79,6 +80,7 @@ class JiraClient:
         Args:
             project_key: JIRA project key
             issue_types: List of issue types to filter by (e.g., ['Feature', 'Bug', 'Issue'])
+            resolution: Resolution to filter by (e.g., 'Unresolved', 'Done', etc.)
             max_results: Maximum number of results to return
 
         Returns:
@@ -93,6 +95,12 @@ class JiraClient:
             if issue_types:
                 types_str = ", ".join(f'"{t}"' for t in issue_types)
                 jql_parts.append(f"issuetype in ({types_str})")
+
+            if resolution:
+                if resolution.lower() == "unresolved":
+                    jql_parts.append("resolution = Unresolved")
+                else:
+                    jql_parts.append(f'resolution = "{resolution}"')
 
             jql = " AND ".join(jql_parts)
 
