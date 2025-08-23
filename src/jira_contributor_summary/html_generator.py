@@ -186,447 +186,167 @@ class HtmlGenerator:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JIRA Contributor Summary - {{ project_key }}</title>
+    <link rel="stylesheet" href="https://unpkg.com/@patternfly/patternfly/patternfly.css">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.4;
-            color: #333;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 15px;
-            background-color: #f5f5f5;
-        }
-
-        .header {
+        /* Custom overrides for PatternFly */
+        .custom-header {
             background: linear-gradient(135deg, #e57373 0%, #ad1457 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        .header h1 {
-            margin: 0 0 8px 0;
-            font-size: 2.2em;
-            font-weight: 300;
+        .custom-stat-card.pf-m-selectable.pf-m-selected {
+            border-color: #d32f2f;
+            background-color: #ffebee;
         }
 
-        .header .subtitle {
-            opacity: 0.9;
-            font-size: 1em;
-        }
-
-        .summary-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-            transform: translateY(-2px);
-        }
-
-        .stat-card.active {
-            background: #ffebee;
-            color: #c62828;
-            border: 2px solid #d32f2f;
-        }
-
-        .stat-card.active .stat-number {
+        .custom-stat-card.pf-m-selectable.pf-m-selected .pf-c-card__title {
             color: #c62828;
         }
 
-        .stat-number {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #e57373;
-            margin-bottom: 3px;
+        .custom-ticket-key {
+            background-color: #e57373;
         }
 
-        .stat-label {
-            color: #666;
-            font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .tickets-container {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .ticket {
-            border-bottom: 1px solid #eee;
-            padding: 12px;
-            transition: background-color 0.2s ease;
-        }
-
-        .ticket:hover {
-            background-color: #f8f9fa;
-        }
-
-        .ticket:last-child {
-            border-bottom: none;
-        }
-
-        .ticket-level-0 {
-            background-color: #fff;
-            border-left: 4px solid #667eea;
-        }
-
-        .ticket-level-1 {
-            background-color: #f8f9fa;
-            border-left: 4px solid #28a745;
-            margin-left: 20px;
-        }
-
-        .ticket-level-2 {
-            background-color: #f1f3f4;
-            border-left: 4px solid #ffc107;
-            margin-left: 40px;
-        }
-
-        .ticket-level-3 {
-            background-color: #f8f9fa;
-            border-left: 4px solid #dc3545;
-            margin-left: 60px;
-        }
-
-        .ticket-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 6px;
-        }
-
-        .ticket-key {
-            background: #e57373;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 0.9em;
-            margin-right: 15px;
-            transition: background-color 0.2s ease;
-        }
-
-        .ticket-key:hover {
-            background: #d32f2f;
-            color: white;
-        }
-
-        .ticket-summary {
-            font-weight: 500;
-            color: #333;
-            flex: 1;
-        }
-
-        .contributor-count {
-            background: #e9ecef;
-            color: #495057;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            margin-left: 10px;
-        }
-
-        .issue-type {
-            background: #f8f9fa;
-            color: #6c757d;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            margin-left: 10px;
-            border: 1px solid #dee2e6;
-        }
-
-        .status {
-            background: #ffebee;
-            color: #d32f2f;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            margin-left: 10px;
-            border: 1px solid #ffcdd2;
-        }
-
-        .status.done {
-            background: #e8f5e8;
-            color: #2e7d32;
-            border-color: #c8e6c9;
-        }
-
-        .status.in-progress {
-            background: #fff3e0;
-            color: #f57c00;
-            border-color: #ffcc02;
-        }
-
-        .status.to-do {
-            background: #fafafa;
-            color: #616161;
-            border-color: #e0e0e0;
-        }
-
-        .contributors {
-            color: #666;
-            font-size: 0.9em;
-            margin-top: 6px;
-        }
-
-        /* Contributors View Styles */
-        .contributors-container {
-            display: none;
-        }
-
-        /* Root Tickets View Styles */
-        .root-tickets-container {
-            display: none;
-        }
-
-        .contributor-item {
-            background: white;
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            margin-bottom: 12px;
-            overflow: hidden;
-        }
-
-        .contributor-header {
-            background: #f8f9fa;
-            padding: 12px 15px;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        .contributor-name {
-            font-size: 1.1em;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 3px;
-        }
-
-        .contributor-stats {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .contributor-tickets {
-            padding: 10px 15px;
-        }
-
-        .contributor-ticket {
-            display: flex;
-            align-items: center;
-            padding: 6px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .contributor-ticket:last-child {
-            border-bottom: none;
-        }
-
-        .contributor-ticket-key {
-            background: #e57373;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 0.9em;
-            margin-right: 12px;
-            min-width: 80px;
-            text-align: center;
-            transition: background-color 0.2s ease;
-        }
-
-        .contributor-ticket-key:hover {
-            background: #d32f2f;
-            color: white;
-            text-decoration: none;
-        }
-
-        .contributor-ticket-summary {
-            flex: 1;
-            color: #333;
-        }
-
-        .contributors strong {
-            color: #333;
-        }
-
-        .contributor-list {
-            margin-top: 5px;
-        }
-
-        .contributor {
-            display: inline-block;
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.85em;
-            margin: 2px 4px 2px 0;
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            padding: 20px;
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-
-            .header h1 {
-                font-size: 2em;
-            }
-
-            .ticket-level-1,
-            .ticket-level-2,
-            .ticket-level-3 {
-                margin-left: 10px;
-            }
-
-            .ticket-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .ticket-key {
-                margin-bottom: 10px;
-            }
+        .custom-ticket-key:hover {
+            background-color: #d32f2f;
         }
     </style>
 </head>
-<body>
-    <div class="header">
-        <h1>JIRA Contributor Summary</h1>
-        <div class="subtitle">Project: {{ project_key }} | Generated: {{ generated_at }}</div>
-    </div>
-
-    <div class="summary-stats">
-        <div class="stat-card active" id="tickets-card" onclick="showTicketsView()">
-            <div class="stat-number">{{ tickets|length }}</div>
-            <div class="stat-label">Total Tickets</div>
-        </div>
-        <div class="stat-card" id="root-tickets-card" onclick="showRootTicketsView()">
-            <div class="stat-number">{{ tickets|selectattr('level', 'equalto', 0)|list|length }}</div>
-            <div class="stat-label">Root Tickets</div>
-        </div>
-        <div class="stat-card" id="contributors-card" onclick="showContributorsView()">
-            <div class="stat-number">{{ contributors|length }}</div>
-            <div class="stat-label">Unique Contributors</div>
-        </div>
-    </div>
-
-    <div class="tickets-container">
-        {% for ticket in tickets %}
-        <div class="ticket ticket-level-{{ ticket.level }}">
-            <div class="ticket-header">
-                <a href="{{ ticket.url }}" class="ticket-key" target="_blank">{{ ticket.key }}</a>
-                <div class="ticket-summary">{{ ticket.summary }}</div>
-                <div class="issue-type">{{ ticket.issue_type }}</div>
-                <div class="status {{ ticket.status_class }}">{{ ticket.status }}</div>
-                <div class="contributor-count">{{ ticket.contributor_count }} contributors</div>
+<body class="pf-c-page">
+    <div class="pf-c-page__main">
+        <section class="pf-c-page__main-section pf-m-light">
+            <div class="pf-c-content">
+                <div class="pf-c-card custom-header">
+                    <div class="pf-c-card__body">
+                        <h1 class="pf-c-title pf-m-2xl" style="color: white; margin-bottom: 0.5rem;">JIRA Contributor Summary</h1>
+                        <p style="color: rgba(255,255,255,0.9); margin: 0;">Project: {{ project_key }} | Generated: {{ generated_at }}</p>
+                    </div>
+                </div>
             </div>
+        </section>
 
-            {% if ticket.contributors %}
-            <div class="contributors">
-                <strong>Contributors:</strong>
-                <div class="contributor-list">
-                    {% for contributor in ticket.contributors %}
-                    <span class="contributor">{{ contributor }}</span>
+        <section class="pf-c-page__main-section">
+            <div class="pf-l-gallery pf-m-gutter" style="--pf-l-gallery--GridTemplateColumns--min: 180px;">
+                <div class="pf-c-card pf-m-selectable custom-stat-card pf-m-selected" id="tickets-card" onclick="showTicketsView()">
+                    <div class="pf-c-card__body pf-m-no-fill">
+                        <div class="pf-c-card__title pf-m-lg">{{ tickets|length }}</div>
+                        <small class="pf-c-content">Total Tickets</small>
+                    </div>
+                </div>
+                <div class="pf-c-card pf-m-selectable custom-stat-card" id="root-tickets-card" onclick="showRootTicketsView()">
+                    <div class="pf-c-card__body pf-m-no-fill">
+                        <div class="pf-c-card__title pf-m-lg">{{ tickets|selectattr('level', 'equalto', 0)|list|length }}</div>
+                        <small class="pf-c-content">Root Tickets</small>
+                    </div>
+                </div>
+                <div class="pf-c-card pf-m-selectable custom-stat-card" id="contributors-card" onclick="showContributorsView()">
+                    <div class="pf-c-card__body pf-m-no-fill">
+                        <div class="pf-c-card__title pf-m-lg">{{ contributors|length }}</div>
+                        <small class="pf-c-content">Unique Contributors</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="pf-c-page__main-section">
+            <div class="pf-c-card tickets-container">
+                <div class="pf-c-card__body">
+                    {% for ticket in tickets %}
+                    <div class="pf-c-data-list__item" style="padding: 0.75rem; {% if ticket.level > 0 %}margin-left: {{ ticket.level * 1.5 }}rem; border-left: 3px solid #06c;{% endif %}">
+                        <div class="pf-c-data-list__item-content">
+                            <div class="pf-c-data-list__item-row">
+                                <div class="pf-c-data-list__item-control" style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                                    <a href="{{ ticket.url }}" class="pf-c-button pf-m-primary pf-m-small custom-ticket-key" target="_blank">{{ ticket.key }}</a>
+                                    <span class="pf-c-content" style="flex: 1;">{{ ticket.summary }}</span>
+                                    <span class="pf-c-label pf-m-outline">{{ ticket.issue_type }}</span>
+                                    <span class="pf-c-label custom-status {% if 'done' in ticket.status.lower() or 'closed' in ticket.status.lower() %}pf-m-green{% elif 'progress' in ticket.status.lower() %}pf-m-orange{% else %}pf-m-grey{% endif %}">{{ ticket.status }}</span>
+                                    <span class="pf-c-label pf-m-outline pf-m-compact">{{ ticket.contributor_count }} contributors</span>
+                                </div>
+                            </div>
+                            {% if ticket.contributors %}
+                            <div class="pf-c-data-list__item-row" style="margin-top: 0.5rem;">
+                                <div class="pf-c-data-list__item-control">
+                                    <strong>Contributors:</strong>
+                                    <div style="margin-top: 0.25rem;">
+                                        {% for contributor in ticket.contributors %}
+                                        <span class="pf-c-label pf-m-compact" style="margin-right: 0.25rem; margin-bottom: 0.25rem;">{{ contributor }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
                     {% endfor %}
                 </div>
             </div>
-            {% else %}
-            <div class="contributors">
-                <em>No contributors found</em>
-            </div>
-            {% endif %}
-        </div>
-        {% endfor %}
-    </div>
 
-    <div class="contributors-container" id="contributors-container">
-        {% for contributor in contributors %}
-        <div class="contributor-item">
-            <div class="contributor-header">
-                <div class="contributor-name">{{ contributor.name }}</div>
-                <div class="contributor-stats">Contributing to {{ contributor.ticket_count }} top-level ticket{{ 's' if contributor.ticket_count != 1 else '' }}</div>
-            </div>
-            <div class="contributor-tickets">
-                {% for ticket in contributor.tickets %}
-                <div class="contributor-ticket">
-                    <a href="{{ ticket.url }}" class="contributor-ticket-key" target="_blank">{{ ticket.key }}</a>
-                    <div class="contributor-ticket-summary">{{ ticket.summary }}</div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <div class="root-tickets-container" id="root-tickets-container">
-        {% for ticket in tickets %}
-        {% if ticket.level == 0 %}
-        <div class="ticket ticket-level-{{ ticket.level }}">
-            <div class="ticket-header">
-                <a href="{{ ticket.url }}" class="ticket-key" target="_blank">{{ ticket.key }}</a>
-                <div class="ticket-summary">{{ ticket.summary }}</div>
-                <div class="issue-type">{{ ticket.issue_type }}</div>
-                <div class="status {{ ticket.status_class }}">{{ ticket.status }}</div>
-                <div class="contributor-count">{{ ticket.contributor_count }} contributors</div>
-            </div>
-
-            {% if ticket.contributors %}
-            <div class="contributors">
-                <strong>Contributors:</strong>
-                <div class="contributor-list">
-                    {% for contributor in ticket.contributors %}
-                    <span class="contributor">{{ contributor }}</span>
+            <div class="pf-c-card root-tickets-container" id="root-tickets-container" style="display: none;">
+                <div class="pf-c-card__body">
+                    {% for ticket in tickets %}
+                    {% if ticket.level == 0 %}
+                    <div class="pf-c-data-list__item" style="padding: 0.75rem;">
+                        <div class="pf-c-data-list__item-content">
+                            <div class="pf-c-data-list__item-row">
+                                <div class="pf-c-data-list__item-control" style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                                    <a href="{{ ticket.url }}" class="pf-c-button pf-m-primary pf-m-small custom-ticket-key" target="_blank">{{ ticket.key }}</a>
+                                    <span class="pf-c-content" style="flex: 1;">{{ ticket.summary }}</span>
+                                    <span class="pf-c-label pf-m-outline">{{ ticket.issue_type }}</span>
+                                    <span class="pf-c-label custom-status {% if 'done' in ticket.status.lower() or 'closed' in ticket.status.lower() %}pf-m-green{% elif 'progress' in ticket.status.lower() %}pf-m-orange{% else %}pf-m-grey{% endif %}">{{ ticket.status }}</span>
+                                    <span class="pf-c-label pf-m-outline pf-m-compact">{{ ticket.contributor_count }} contributors</span>
+                                </div>
+                            </div>
+                            {% if ticket.contributors %}
+                            <div class="pf-c-data-list__item-row" style="margin-top: 0.5rem;">
+                                <div class="pf-c-data-list__item-control">
+                                    <strong>Contributors:</strong>
+                                    <div style="margin-top: 0.25rem;">
+                                        {% for contributor in ticket.contributors %}
+                                        <span class="pf-c-label pf-m-compact" style="margin-right: 0.25rem; margin-bottom: 0.25rem;">{{ contributor }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
                     {% endfor %}
                 </div>
             </div>
-            {% else %}
-            <div class="contributors">
-                <em>No contributors found</em>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-        {% endfor %}
-    </div>
 
-    <div class="footer">
-        Generated by JIRA Contributor Summary tool
+            <div class="pf-c-card contributors-container" id="contributors-container" style="display: none;">
+                <div class="pf-c-card__body">
+                    {% for contributor in contributors %}
+                    <div class="pf-c-data-list__item" style="margin-bottom: 1rem;">
+                        <div class="pf-c-data-list__item-content">
+                            <div class="pf-c-data-list__item-row">
+                                <div class="pf-c-data-list__item-control">
+                                    <h3 class="pf-c-title pf-m-lg">{{ contributor.name }}</h3>
+                                    <p class="pf-c-content">Contributing to {{ contributor.ticket_count }} top-level ticket{{ 's' if contributor.ticket_count != 1 else '' }}</p>
+                                </div>
+                            </div>
+                            {% for ticket in contributor.tickets %}
+                            <div class="pf-c-data-list__item-row" style="padding: 0.5rem 0;">
+                                <div class="pf-c-data-list__item-control" style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <a href="{{ ticket.url }}" class="pf-c-button pf-m-primary pf-m-small custom-ticket-key" target="_blank">{{ ticket.key }}</a>
+                                    <span class="pf-c-content">{{ ticket.summary }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
     </div>
 
     <script>
         function showTicketsView() {
             // Update active state
-            document.getElementById('tickets-card').classList.add('active');
-            document.getElementById('root-tickets-card').classList.remove('active');
-            document.getElementById('contributors-card').classList.remove('active');
+            document.getElementById('tickets-card').classList.add('pf-m-selected');
+            document.getElementById('root-tickets-card').classList.remove('pf-m-selected');
+            document.getElementById('contributors-card').classList.remove('pf-m-selected');
 
             // Show/hide containers
             document.querySelector('.tickets-container').style.display = 'block';
@@ -636,9 +356,9 @@ class HtmlGenerator:
 
         function showRootTicketsView() {
             // Update active state
-            document.getElementById('root-tickets-card').classList.add('active');
-            document.getElementById('tickets-card').classList.remove('active');
-            document.getElementById('contributors-card').classList.remove('active');
+            document.getElementById('root-tickets-card').classList.add('pf-m-selected');
+            document.getElementById('tickets-card').classList.remove('pf-m-selected');
+            document.getElementById('contributors-card').classList.remove('pf-m-selected');
 
             // Show/hide containers
             document.querySelector('.tickets-container').style.display = 'none';
@@ -648,9 +368,9 @@ class HtmlGenerator:
 
         function showContributorsView() {
             // Update active state
-            document.getElementById('contributors-card').classList.add('active');
-            document.getElementById('tickets-card').classList.remove('active');
-            document.getElementById('root-tickets-card').classList.remove('active');
+            document.getElementById('contributors-card').classList.add('pf-m-selected');
+            document.getElementById('tickets-card').classList.remove('pf-m-selected');
+            document.getElementById('root-tickets-card').classList.remove('pf-m-selected');
 
             // Show/hide containers
             document.querySelector('.tickets-container').style.display = 'none';
