@@ -53,7 +53,21 @@ class JiraClient:
 
         response = self.session.get(url, params=params)
         response.raise_for_status()
-        return response.json()
+
+        # Check if we got HTML instead of JSON (common auth failure symptom)
+        content_type = response.headers.get("content-type", "").lower()
+        if "text/html" in content_type:
+            raise requests.HTTPError(
+                f"Received HTML response instead of JSON. This usually indicates authentication failure. "
+                f"Please check your JIRA credentials and URL. Response: {response.text[:200]}..."
+            )
+
+        try:
+            return response.json()
+        except ValueError as e:
+            raise requests.HTTPError(
+                f"Failed to parse JSON response from JIRA API. Response: {response.text[:200]}..."
+            ) from e
 
     def search_tickets(
         self,
@@ -92,7 +106,22 @@ class JiraClient:
 
         response = self.session.get(url, params=params)
         response.raise_for_status()
-        data = response.json()
+
+        # Check if we got HTML instead of JSON (common auth failure symptom)
+        content_type = response.headers.get("content-type", "").lower()
+        if "text/html" in content_type:
+            raise requests.HTTPError(
+                f"Received HTML response instead of JSON. This usually indicates authentication failure. "
+                f"Please check your JIRA credentials and URL. Response: {response.text[:200]}..."
+            )
+
+        try:
+            data = response.json()
+        except ValueError as e:
+            raise requests.HTTPError(
+                f"Failed to parse JSON response from JIRA API. Response: {response.text[:200]}..."
+            ) from e
+
         return data.get("issues", [])
 
     def get_subtasks(

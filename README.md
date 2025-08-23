@@ -61,37 +61,13 @@ jira-contributor-summary cache-info
 Set your JIRA API token as an environment variable:
 
 ```bash
-export JIRA_TOKEN="your-jira-api-token"
+export JIRA_API_TOKEN="your-jira-api-token"
 ```
 
 Alternatively, you can pass it directly:
 
 ```bash
 jira-contributor-summary generate --token "your-token" --jira-url ... --project ...
-```
-
-### Programmatic Usage
-
-```python
-from jira_contributor_summary import JiraClient, TicketCache, TicketHierarchy, ContributorExtractor, HtmlGenerator
-
-# Initialize components
-jira_client = JiraClient("https://your-company.atlassian.net", token)
-cache = TicketCache()
-hierarchy = TicketHierarchy(jira_client, cache)
-
-# Build hierarchy and extract contributors
-hierarchy.build_hierarchy("PROJ", ["Feature", "Issue", "Bug"])
-all_tickets = hierarchy.get_all_tickets()
-hierarchy_map = hierarchy.get_hierarchy_map()
-
-contributor_extractor = ContributorExtractor()
-contributor_summary = contributor_extractor.get_contributor_summary(all_tickets, hierarchy_map)
-
-# Generate HTML report
-html_generator = HtmlGenerator("https://your-company.atlassian.net")
-display_data = hierarchy.get_hierarchy_for_display()
-html_generator.generate_html(display_data, contributor_summary, "PROJ", "report.html")
 ```
 
 ## Configuration Options
