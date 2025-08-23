@@ -198,7 +198,7 @@ class HtmlGenerator:
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #e57373 0%, #ad1457 100%);
             color: white;
             padding: 30px;
             border-radius: 10px;
@@ -240,19 +240,19 @@ class HtmlGenerator:
         }
 
         .stat-card.active {
-            background: #e3f2fd;
-            color: #1565c0;
-            border: 2px solid #1976d2;
+            background: #ffebee;
+            color: #c62828;
+            border: 2px solid #d32f2f;
         }
 
         .stat-card.active .stat-number {
-            color: #1565c0;
+            color: #c62828;
         }
 
         .stat-number {
             font-size: 2em;
             font-weight: bold;
-            color: #667eea;
+            color: #e57373;
             margin-bottom: 5px;
         }
 
@@ -314,7 +314,7 @@ class HtmlGenerator:
         }
 
         .ticket-key {
-            background: #667eea;
+            background: #e57373;
             color: white;
             padding: 4px 8px;
             border-radius: 4px;
@@ -326,7 +326,7 @@ class HtmlGenerator:
         }
 
         .ticket-key:hover {
-            background: #5a6fd8;
+            background: #d32f2f;
             color: white;
         }
 
@@ -356,13 +356,13 @@ class HtmlGenerator:
         }
 
         .status {
-            background: #e3f2fd;
-            color: #1976d2;
+            background: #ffebee;
+            color: #d32f2f;
             padding: 2px 8px;
             border-radius: 12px;
             font-size: 0.8em;
             margin-left: 10px;
-            border: 1px solid #bbdefb;
+            border: 1px solid #ffcdd2;
         }
 
         .status.done {
@@ -441,19 +441,22 @@ class HtmlGenerator:
         }
 
         .contributor-ticket-key {
-            background: #e3f2fd;
-            color: #1976d2;
+            background: #e57373;
+            color: white;
             padding: 4px 8px;
             border-radius: 4px;
             text-decoration: none;
-            font-weight: 500;
+            font-weight: bold;
+            font-size: 0.9em;
             margin-right: 12px;
             min-width: 80px;
             text-align: center;
+            transition: background-color 0.2s ease;
         }
 
         .contributor-ticket-key:hover {
-            background: #bbdefb;
+            background: #d32f2f;
+            color: white;
             text-decoration: none;
         }
 
