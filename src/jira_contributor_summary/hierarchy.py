@@ -1,9 +1,12 @@
 """Logic for building and managing JIRA ticket hierarchies."""
 
+import logging
 import typing
 from collections import defaultdict
 
 from .jira_client import JiraClient
+
+logger = logging.getLogger(__name__)
 
 
 class TicketHierarchy:
@@ -38,7 +41,7 @@ class TicketHierarchy:
             root_issue_types = ["Feature", "Issue", "Bug"]
 
         # First, get all root tickets that are unresolved
-        print(
+        logger.info(
             f"Fetching unresolved root tickets of types {root_issue_types} from project {project_key}..."
         )
         root_tickets = self.jira_client.search_tickets(
@@ -60,7 +63,7 @@ class TicketHierarchy:
         Args:
             ticket_key: JIRA ticket key to start from (e.g., 'PROJ-123')
         """
-        print(f"Fetching ticket {ticket_key} and building hierarchy...")
+        logger.info(f"Fetching ticket {ticket_key} and building hierarchy...")
 
         try:
             # Fetch the starting ticket
@@ -71,7 +74,7 @@ class TicketHierarchy:
             self._process_ticket_recursive(ticket_key, ticket_data)
 
         except Exception as e:
-            print(f"Error fetching ticket {ticket_key}: {e}")
+            logger.error(f"Error fetching ticket {ticket_key}: {e}")
             raise
 
     def _process_ticket_recursive(
@@ -93,9 +96,9 @@ class TicketHierarchy:
         if ticket_data is None:
             try:
                 ticket_data = self.jira_client.get_ticket(ticket_key)
-                print(f"Fetched {ticket_key}")
+                logger.debug(f"Fetched {ticket_key}")
             except Exception as e:
-                print(f"Error fetching {ticket_key}: {e}")
+                logger.error(f"Error fetching {ticket_key}: {e}")
                 return
 
         # Store the ticket
@@ -106,7 +109,9 @@ class TicketHierarchy:
 
         if child_keys:
             self.hierarchy[ticket_key] = child_keys
-            print(f"Found {len(child_keys)} children for {ticket_key}: {child_keys}")
+            logger.debug(
+                f"Found {len(child_keys)} children for {ticket_key}: {child_keys}"
+            )
 
             # Recursively process children
             for child_key in child_keys:
@@ -154,7 +159,7 @@ class TicketHierarchy:
                 child_keys.extend(parent_children)
 
         except Exception as e:
-            print(f"Error searching for children of {ticket_key}: {e}")
+            logger.error(f"Error searching for children of {ticket_key}: {e}")
 
         return child_keys
 
@@ -179,10 +184,12 @@ class TicketHierarchy:
                     child_key = issue.get("key")
                     if child_key and child_key not in child_keys:
                         child_keys.append(child_key)
-                        print(f"Found Epic Link child: {epic_key} -> {child_key}")
+                        logger.debug(
+                            f"Found Epic Link child: {epic_key} -> {child_key}"
+                        )
 
         except Exception as e:
-            print(f"Error searching Epic Link for {epic_key}: {e}")
+            logger.error(f"Error searching Epic Link for {epic_key}: {e}")
 
         return child_keys
 
@@ -207,10 +214,12 @@ class TicketHierarchy:
                     child_key = issue.get("key")
                     if child_key and child_key not in child_keys:
                         child_keys.append(child_key)
-                        print(f"Found Parent Link child: {parent_key} -> {child_key}")
+                        logger.debug(
+                            f"Found Parent Link child: {parent_key} -> {child_key}"
+                        )
 
         except Exception as e:
-            print(f"Error searching Parent Link for {parent_key}: {e}")
+            logger.error(f"Error searching Parent Link for {parent_key}: {e}")
 
         return child_keys
 
@@ -301,7 +310,7 @@ class TicketHierarchy:
         # True roots are tickets that exist but are not children of any other ticket
         true_roots = all_ticket_keys - tickets_with_parents
 
-        print(f"Found {len(true_roots)} true root tickets: {sorted(true_roots)}")
+        logger.debug(f"Found {len(true_roots)} true root tickets: {sorted(true_roots)}")
         return true_roots
 
     def _add_ticket_to_display(

@@ -1,10 +1,13 @@
 """HTML output generation for JIRA contributor summaries."""
 
+import logging
 import typing
 from datetime import datetime
 from pathlib import Path
 
 from jinja2 import Template
+
+logger = logging.getLogger(__name__)
 
 
 class HtmlGenerator:
@@ -84,7 +87,7 @@ class HtmlGenerator:
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 
-        print(f"HTML report generated: {output_path.absolute()}")
+        logger.info(f"HTML report generated: {output_path.absolute()}")
 
     def _generate_contributors_data(
         self,
