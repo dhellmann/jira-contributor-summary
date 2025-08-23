@@ -1,0 +1,33 @@
+In this directory create a new python program to review a hierarchy of jira
+tickets to summarize who is contributing to each one.
+
+Start with tickets of type Feature, Issue, and Bug, then collect the information
+for the children of each ticket, recursively.
+
+Determine contributors for a ticket by looking at the assignee, additional
+assignees, and contributors fields of a ticket.
+
+Produce as output a nicely styled static HTML file showing the tickets from the
+top of the hierarchy to the bottom, sorted by the Rank for each ticket, in
+ascending order. Show the ticket ID as a link to the jira page showing the
+ticket details. Show the title of the ticket. Then show a comma separated list
+of the unique full names of the contributors for the ticket and any descendant
+tickets.
+
+Save ticket details in a cache so that it is only necessary to download data for
+tickets edited since the last time the program ran. Save the cache to a
+directory specified by the user. Default to a location returned by the appdirs
+package.
+
+Save the output HTML file to a specified path, defaulting to
+jira-contributor-summary.html.
+
+Organize the code to make it easy to package with hatchling.
+
+Configure hatch to run ruff as a linter and to run the unit tests with pytest.
+
+Use click to process command line arguments.
+
+Add command line options to specify the jira instance and jira project.
+
+Use the environment variable JIRA_TOKEN to access the jira API bearer token.
