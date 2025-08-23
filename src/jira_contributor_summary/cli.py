@@ -45,7 +45,11 @@ from .jira_client import JiraClient
 )
 @click.option(
     "--token",
-    help="JIRA API token (default: uses JIRA_TOKEN environment variable)",
+    help="JIRA API token (default: uses JIRA_API_TOKEN environment variable)",
+)
+@click.option(
+    "--email",
+    help="Email address for JIRA Cloud (default: uses JIRA_EMAIL environment variable)",
 )
 @click.option(
     "--verbose",
@@ -61,6 +65,7 @@ def main(
     issue_types: str,
     clear_cache: bool,
     token: typing.Optional[str],
+    email: typing.Optional[str],
     verbose: bool,
 ) -> None:
     """Generate HTML summaries of JIRA ticket contributors.
@@ -99,7 +104,7 @@ def main(
 
         # Initialize components
         click.echo("Initializing JIRA client...")
-        jira_client = JiraClient(jira_url, token)
+        jira_client = JiraClient(jira_url, token, email)
 
         click.echo("Setting up cache...")
         cache = TicketCache(cache_dir)

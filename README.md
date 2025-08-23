@@ -64,10 +64,16 @@ Set your JIRA API token as an environment variable:
 export JIRA_API_TOKEN="your-jira-api-token"
 ```
 
-Alternatively, you can pass it directly:
+For JIRA Cloud, you also need to set your email:
 
 ```bash
-jira-contributor-summary generate --token "your-token" --jira-url ... --project ...
+export JIRA_EMAIL="your-email@company.com"
+```
+
+Alternatively, you can pass them directly:
+
+```bash
+jira-contributor-summary generate --token "your-token" --email "your-email@company.com" --jira-url ... --project ...
 ```
 
 ## Configuration Options
@@ -79,7 +85,8 @@ jira-contributor-summary generate --token "your-token" --jira-url ... --project 
 | `--output` | Output HTML file path | `jira-contributor-summary.html` |
 | `--cache-dir` | Cache directory | Uses `appdirs` default |
 | `--issue-types` | Comma-separated root issue types | `Feature,Issue,Bug` |
-| `--token` | JIRA API token | Uses `JIRA_TOKEN` env var |
+| `--token` | JIRA API token | Uses `JIRA_API_TOKEN` env var |
+| `--email` | Email for JIRA Cloud | Uses `JIRA_EMAIL` env var |
 | `--clear-cache` | Clear cache before running | False |
 | `--verbose` | Enable verbose output | False |
 

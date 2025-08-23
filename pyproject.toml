@@ -24,7 +24,7 @@ classifiers = [
 ]
 dependencies = [
     "click>=8.0.0",
-    "requests>=2.25.0",
+    "atlassian-python-api>=3.41.0",
     "appdirs>=1.4.0",
     "jinja2>=3.0.0",
 ]

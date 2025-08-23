@@ -4,34 +4,44 @@ import os
 import typing
 from datetime import datetime
 
-import requests
+from atlassian import Jira
 
 
 class JiraClient:
     """Client for interacting with JIRA REST API."""
 
-    def __init__(self, base_url: str, token: typing.Optional[str] = None):
+    def __init__(
+        self,
+        base_url: str,
+        token: typing.Optional[str] = None,
+        email: typing.Optional[str] = None,
+    ):
         """Initialize JIRA client.
 
         Args:
             base_url: Base URL of the JIRA instance (e.g., https://company.atlassian.net)
-            token: Bearer token for authentication. If None, uses JIRA_API_TOKEN env var.
+            token: API token for authentication. If None, uses JIRA_API_TOKEN env var.
+            email: Email address for JIRA Cloud. If None, uses JIRA_EMAIL env var.
+                  Required for JIRA Cloud, optional for JIRA Server/DC.
         """
         self.base_url = base_url.rstrip("/")
         self.token = token or os.getenv("JIRA_API_TOKEN")
+        self.email = email or os.getenv("JIRA_EMAIL")
+
         if not self.token:
             raise ValueError(
                 "JIRA token must be provided or set in JIRA_API_TOKEN environment variable"
             )
 
-        self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "Authorization": f"Bearer {self.token}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            }
-        )
+        # Initialize the Jira client from atlassian-python-api
+        if self.email:
+            # JIRA Cloud with email + API token
+            self.jira = Jira(
+                url=self.base_url, username=self.email, password=self.token, cloud=True
+            )
+        else:
+            # JIRA Server/DC with token
+            self.jira = Jira(url=self.base_url, token=self.token, cloud=False)
 
     def get_ticket(self, ticket_key: str) -> typing.Dict[str, typing.Any]:
         """Fetch a single ticket by key.
@@ -43,30 +53,19 @@ class JiraClient:
             Dictionary containing ticket data
 
         Raises:
-            requests.HTTPError: If the API request fails
+            Exception: If the API request fails
         """
-        url = f"{self.base_url}/rest/api/3/issue/{ticket_key}"
-        params = {
-            "expand": "names,schema",
-            "fields": "summary,issuetype,status,assignee,customfield_*,subtasks,issuelinks,updated,created,priority,labels,components,fixVersions",
-        }
-
-        response = self.session.get(url, params=params)
-        response.raise_for_status()
-
-        # Check if we got HTML instead of JSON (common auth failure symptom)
-        content_type = response.headers.get("content-type", "").lower()
-        if "text/html" in content_type:
-            raise requests.HTTPError(
-                f"Received HTML response instead of JSON. This usually indicates authentication failure. "
-                f"Please check your JIRA credentials and URL. Response: {response.text[:200]}..."
-            )
-
         try:
-            return response.json()
-        except ValueError as e:
-            raise requests.HTTPError(
-                f"Failed to parse JSON response from JIRA API. Response: {response.text[:200]}..."
+            # Use the atlassian-python-api to get the issue
+            issue = self.jira.issue(
+                key=ticket_key,
+                expand="names,schema",
+                fields="summary,issuetype,status,assignee,customfield_*,subtasks,issuelinks,updated,created,priority,labels,components,fixVersions",
+            )
+            return issue
+        except Exception as e:
+            raise Exception(
+                f"Failed to fetch ticket {ticket_key}. Please check your JIRA credentials and URL. Error: {e}"
             ) from e
 
     def search_tickets(
@@ -86,43 +85,30 @@ class JiraClient:
             List of ticket dictionaries
 
         Raises:
-            requests.HTTPError: If the API request fails
+            Exception: If the API request fails
         """
-        jql_parts = [f"project = {project_key}"]
+        try:
+            jql_parts = [f"project = {project_key}"]
 
-        if issue_types:
-            types_str = ", ".join(f'"{t}"' for t in issue_types)
-            jql_parts.append(f"issuetype in ({types_str})")
+            if issue_types:
+                types_str = ", ".join(f'"{t}"' for t in issue_types)
+                jql_parts.append(f"issuetype in ({types_str})")
 
-        jql = " AND ".join(jql_parts)
+            jql = " AND ".join(jql_parts)
 
-        url = f"{self.base_url}/rest/api/3/search"
-        params = {
-            "jql": jql,
-            "maxResults": max_results,
-            "expand": "names,schema",
-            "fields": "summary,issuetype,status,assignee,customfield_*,subtasks,issuelinks,updated,created,priority,labels,components,fixVersions",
-        }
-
-        response = self.session.get(url, params=params)
-        response.raise_for_status()
-
-        # Check if we got HTML instead of JSON (common auth failure symptom)
-        content_type = response.headers.get("content-type", "").lower()
-        if "text/html" in content_type:
-            raise requests.HTTPError(
-                f"Received HTML response instead of JSON. This usually indicates authentication failure. "
-                f"Please check your JIRA credentials and URL. Response: {response.text[:200]}..."
+            # Use the atlassian-python-api to search for issues
+            issues = self.jira.jql(
+                jql=jql,
+                limit=max_results,
+                expand="names,schema",
+                fields="summary,issuetype,status,assignee,customfield_*,subtasks,issuelinks,updated,created,priority,labels,components,fixVersions",
             )
 
-        try:
-            data = response.json()
-        except ValueError as e:
-            raise requests.HTTPError(
-                f"Failed to parse JSON response from JIRA API. Response: {response.text[:200]}..."
+            return issues.get("issues", [])
+        except Exception as e:
+            raise Exception(
+                f"Failed to search tickets in project {project_key}. Please check your JIRA credentials and URL. Error: {e}"
             ) from e
-
-        return data.get("issues", [])
 
     def get_subtasks(
         self, ticket_key: str
@@ -144,7 +130,7 @@ class JiraClient:
             try:
                 full_subtask = self.get_ticket(subtask["key"])
                 full_subtasks.append(full_subtask)
-            except requests.HTTPError:
+            except Exception:
                 # Skip subtasks we can't access
                 continue
 
@@ -172,7 +158,7 @@ class JiraClient:
                     try:
                         linked_issue = self.get_ticket(link[direction]["key"])
                         linked_issues.append(linked_issue)
-                    except requests.HTTPError:
+                    except Exception:
                         # Skip issues we can't access
                         continue
 
