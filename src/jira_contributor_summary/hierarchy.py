@@ -234,37 +234,15 @@ class TicketHierarchy:
             ticket = self.all_tickets.get(ticket_key, {})
             fields = ticket.get("fields", {})
 
-            # Look for rank in various possible fields
-            rank_fields = [
-                "rank",
-                "priority",
-                "customfield_10020",
-                "customfield_10021",
-            ]  # Common rank field IDs
+            # Get rank from the "Rank" field
+            rank_value = fields.get("Rank")
+            if isinstance(rank_value, (int, float)):
+                return float(rank_value)
+            elif isinstance(rank_value, str) and rank_value.replace(".", "").isdigit():
+                return float(rank_value)
 
-            for field in rank_fields:
-                rank_value = fields.get(field)
-                if rank_value is not None:
-                    if isinstance(rank_value, (int, float)):
-                        return float(rank_value)
-                    elif (
-                        isinstance(rank_value, str)
-                        and rank_value.replace(".", "").isdigit()
-                    ):
-                        return float(rank_value)
-                    elif isinstance(rank_value, dict) and "id" in rank_value:
-                        # Priority object with numeric ID
-                        try:
-                            return float(rank_value["id"])
-                        except (ValueError, TypeError):
-                            pass
-
-            # Fallback: use creation date as a sort key
-            created = fields.get("created", "")
-            if created:
-                return hash(created) % 1000000  # Convert to numeric for sorting
-
-            return float("inf")  # Put tickets without rank at the end
+            # This should not happen as all tickets have a rank
+            return 0.0
 
         return sorted(self.all_tickets.keys(), key=get_rank)
 
