@@ -147,7 +147,7 @@ class JiraClient:
 
         return full_subtasks
 
-    def get_linked_issues(self, ticket_key: str) -> list[dict[str, typing.Any]]:
+    def get_linked_issues(self, ticket_key: str) -> list[dict[str, Any]]:
         """Get all linked issues for a given ticket.
 
         Args:
@@ -173,7 +173,7 @@ class JiraClient:
 
         return linked_issues
 
-    def get_ticket_updated_time(self, ticket_data: dict[str, typing.Any]) -> datetime:
+    def get_ticket_updated_time(self, ticket_data: dict[str, Any]) -> datetime:
         """Extract the updated timestamp from ticket data.
 
         Args:
