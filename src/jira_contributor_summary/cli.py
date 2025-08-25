@@ -34,8 +34,8 @@ from .jira_client import JiraClient
 )
 @click.option(
     "--issue-types",
-    default="Feature,Issue,Bug",
-    help="Comma-separated list of root issue types (default: Feature,Issue,Bug)",
+    default="Feature,Initiative,Bug",
+    help="Comma-separated list of root issue types (default: Feature,Initiative,Bug)",
 )
 @click.option(
     "--token",
