@@ -19,14 +19,14 @@ class TicketHierarchy:
             jira_client: JIRA API client
         """
         self.jira_client = jira_client
-        self.all_tickets: typing.Dict[str, typing.Dict[str, typing.Any]] = {}
-        self.hierarchy: typing.Dict[str, typing.List[str]] = defaultdict(list)
-        self.root_tickets: typing.List[str] = []
+        self.all_tickets: dict[str, dict[str, typing.Any]] = {}
+        self.hierarchy: dict[str, list[str]] = defaultdict(list)
+        self.root_tickets: list[str] = []
 
     def build_hierarchy(
         self,
         project_key: str,
-        root_issue_types: typing.Optional[typing.List[str]] = None,
+        root_issue_types: list[str] | None = None,
     ) -> None:
         """Build the complete ticket hierarchy for a project.
 
@@ -80,7 +80,7 @@ class TicketHierarchy:
     def _process_ticket_recursive(
         self,
         ticket_key: str,
-        ticket_data: typing.Optional[typing.Dict[str, typing.Any]] = None,
+        ticket_data: dict[str, typing.Any] | None = None,
     ) -> None:
         """Recursively process a ticket and all its children.
 
@@ -90,7 +90,10 @@ class TicketHierarchy:
         """
         # Skip if already processed
         if ticket_key in self.all_tickets:
+            logger.debug(f"Ticket {ticket_key} already processed")
             return
+
+        logger.info(f"Processing ticket {ticket_key}")
 
         # Fetch ticket data if not provided
         if ticket_data is None:
@@ -117,9 +120,7 @@ class TicketHierarchy:
             for child_key in child_keys:
                 self._process_ticket_recursive(child_key)
 
-    def _get_child_ticket_keys(
-        self, ticket_data: typing.Dict[str, typing.Any]
-    ) -> typing.List[str]:
+    def _get_child_ticket_keys(self, ticket_data: dict[str, typing.Any]) -> list[str]:
         """Find all child tickets by searching for tickets that reference this ticket as their parent.
 
         Args:
@@ -163,7 +164,7 @@ class TicketHierarchy:
 
         return child_keys
 
-    def _search_tickets_with_epic_link(self, epic_key: str) -> typing.List[str]:
+    def _search_tickets_with_epic_link(self, epic_key: str) -> list[str]:
         """Search for tickets that have their Epic Link pointing to the given epic.
 
         Args:
@@ -193,7 +194,7 @@ class TicketHierarchy:
 
         return child_keys
 
-    def _search_tickets_with_parent_link(self, parent_key: str) -> typing.List[str]:
+    def _search_tickets_with_parent_link(self, parent_key: str) -> list[str]:
         """Search for tickets that have their Parent Link pointing to the given parent.
 
         Args:
@@ -214,16 +215,14 @@ class TicketHierarchy:
                     child_key = issue.get("key")
                     if child_key and child_key not in child_keys:
                         child_keys.append(child_key)
-                        logger.debug(
-                            f"Found Parent Link child: {parent_key} -> {child_key}"
-                        )
+                        logger.debug(f"Found {parent_key} -> {child_key}")
 
         except Exception as e:
             logger.error(f"Error searching Parent Link for {parent_key}: {e}")
 
         return child_keys
 
-    def get_sorted_tickets_by_rank(self) -> typing.List[str]:
+    def get_sorted_tickets_by_rank(self) -> list[str]:
         """Get all tickets sorted by their rank in ascending order.
 
         Returns:
@@ -269,7 +268,7 @@ class TicketHierarchy:
 
         return sorted(self.all_tickets.keys(), key=get_rank)
 
-    def get_hierarchy_for_display(self) -> typing.List[typing.Dict[str, typing.Any]]:
+    def get_hierarchy_for_display(self) -> list[dict[str, typing.Any]]:
         """Get hierarchy organized for display purposes.
 
         Returns:
@@ -292,7 +291,7 @@ class TicketHierarchy:
 
         return display_data
 
-    def _find_true_root_tickets(self) -> typing.Set[str]:
+    def _find_true_root_tickets(self) -> set[str]:
         """Find all tickets that are true roots (have no parent in our collected tickets).
 
         Returns:
@@ -316,8 +315,8 @@ class TicketHierarchy:
     def _add_ticket_to_display(
         self,
         ticket_key: str,
-        display_data: typing.List[typing.Dict[str, typing.Any]],
-        processed: typing.Set[str],
+        display_data: list[dict[str, typing.Any]],
+        processed: set[str],
         level: int,
     ) -> None:
         """Recursively add ticket and children to display data.
@@ -352,7 +351,7 @@ class TicketHierarchy:
         for child_key in sorted_children:
             self._add_ticket_to_display(child_key, display_data, processed, level + 1)
 
-    def get_all_tickets(self) -> typing.Dict[str, typing.Dict[str, typing.Any]]:
+    def get_all_tickets(self) -> dict[str, dict[str, typing.Any]]:
         """Get all processed tickets.
 
         Returns:
@@ -360,7 +359,7 @@ class TicketHierarchy:
         """
         return self.all_tickets.copy()
 
-    def get_hierarchy_map(self) -> typing.Dict[str, typing.List[str]]:
+    def get_hierarchy_map(self) -> dict[str, list[str]]:
         """Get the hierarchy mapping.
 
         Returns:

@@ -1,10 +1,13 @@
 """JIRA API client for fetching ticket data."""
 
+import logging
 import os
-import typing
 from datetime import datetime
+from typing import Any
 
 from atlassian import Jira
+
+logger = logging.getLogger(__name__)
 
 
 class JiraClient:
@@ -13,8 +16,8 @@ class JiraClient:
     def __init__(
         self,
         base_url: str,
-        token: typing.Optional[str] = None,
-        email: typing.Optional[str] = None,
+        token: str | None = None,
+        email: str | None = None,
     ):
         """Initialize JIRA client.
 
@@ -43,7 +46,7 @@ class JiraClient:
             # JIRA Server/DC with token
             self.jira = Jira(url=self.base_url, token=self.token, cloud=False)
 
-    def get_ticket(self, ticket_key: str) -> typing.Dict[str, typing.Any]:
+    def get_ticket(self, ticket_key: str) -> dict[str, Any]:
         """Fetch a single ticket by key.
 
         Args:
@@ -71,10 +74,10 @@ class JiraClient:
     def search_tickets(
         self,
         project_key: str,
-        issue_types: typing.Optional[typing.List[str]] = None,
-        resolution: typing.Optional[str] = None,
+        issue_types: list[str] | None = None,
+        resolution: str | None = None,
         max_results: int = 1000,
-    ) -> typing.List[typing.Dict[str, typing.Any]]:
+    ) -> list[dict[str, Any]]:
         """Search for tickets in a project.
 
         Args:
@@ -103,8 +106,10 @@ class JiraClient:
                     jql_parts.append(f'resolution = "{resolution}"')
 
             jql = " AND ".join(jql_parts)
+            jql += " ORDER BY Rank ASC"
 
             # Use the atlassian-python-api to search for issues
+            logger.debug(f"searching for tickets with jql: {jql}")
             issues = self.jira.jql(
                 jql=jql,
                 limit=max_results,
@@ -118,9 +123,7 @@ class JiraClient:
                 f"Failed to search tickets in project {project_key}. Please check your JIRA credentials and URL. Error: {e}"
             ) from e
 
-    def get_subtasks(
-        self, ticket_key: str
-    ) -> typing.List[typing.Dict[str, typing.Any]]:
+    def get_subtasks(self, ticket_key: str) -> list[dict[str, Any]]:
         """Get all subtasks for a given ticket.
 
         Args:
@@ -144,9 +147,7 @@ class JiraClient:
 
         return full_subtasks
 
-    def get_linked_issues(
-        self, ticket_key: str
-    ) -> typing.List[typing.Dict[str, typing.Any]]:
+    def get_linked_issues(self, ticket_key: str) -> list[dict[str, typing.Any]]:
         """Get all linked issues for a given ticket.
 
         Args:
@@ -172,9 +173,7 @@ class JiraClient:
 
         return linked_issues
 
-    def get_ticket_updated_time(
-        self, ticket_data: typing.Dict[str, typing.Any]
-    ) -> datetime:
+    def get_ticket_updated_time(self, ticket_data: dict[str, typing.Any]) -> datetime:
         """Extract the updated timestamp from ticket data.
 
         Args:
